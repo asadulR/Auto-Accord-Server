@@ -18,21 +18,35 @@ app.get('/', (req, res) => {
 //    65TvtWdj2UfVbdov
 
 
-const uri = "mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.f3est.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.f3est.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
-client.connect(err => {
-  const collection = client.db("test").collection("devices");
-  console.log("DB connected");
-  // perform actions on the collection object
-  client.close();
-});
 
 
 
+async function run(){
+    try{
+        await client.connect();
+
+        const expertsCollection = client.db('AutoAccord').collection('experts');
+
+        //  load experts from database
+        app.get('/experts', async(req, res) => {
+            const query = {};
+
+            const cursor = expertsCollection.find(query);
+            const experts = await cursor.toArray();
+
+            res.send(experts);
+        });
+    }
+    finally{
+
+    }
+
+}
 
 
-
-
+run().catch(console.dir);
 
 
 
@@ -44,5 +58,5 @@ client.connect(err => {
 
 
 app.listen(port, () => {
-    console.log('CURD server is listenning');
+    console.log('CURD server is listenning, ', port);
 });
