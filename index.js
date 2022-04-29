@@ -27,16 +27,16 @@ async function run(){
     try{
         await client.connect();
 
-        const expertsCollection = client.db('AutoAccord').collection('experts');
+        const inventoryCollection = client.db('AutoAccord').collection('InventoryItems');
 
-        //  load experts from database
-        app.get('/experts', async(req, res) => {
+        //  load inventory items from database
+        app.get('/items', async(req, res) => {
             const query = {};
 
-            const cursor = expertsCollection.find(query);
-            const experts = await cursor.toArray();
+            const cursor = inventoryCollection.find(query);
+            const items = await cursor.toArray();
 
-            res.send(experts);
+            res.send(items);
         });
     }
     finally{
