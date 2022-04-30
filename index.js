@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express();
 require('dotenv').config();
@@ -13,9 +13,6 @@ app.use(express.json());
 app.get('/', (req, res) => {
     res.send('Auto Accord server');
 });
-
-//     AutoAccord
-//    65TvtWdj2UfVbdov
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.f3est.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
@@ -38,6 +35,46 @@ async function run(){
 
             res.send(items);
         });
+
+        //  Load single Inventory item to update
+        app.get("/items/:id", async(req,res) => {
+            const id = req.params.id;
+            const query = {_id: ObjectId(id)};
+
+            const item = await inventoryCollection.findOne(query);
+
+            res.send(item);
+        });
+
+        //  updating inventory item by PUT API
+        app.put("/items/:id", async (req, res) => {
+            const id = req.params.id;
+            const updateItem = req.body;
+            const filter = {_id: ObjectId(id)};
+
+            const options = {upsert: true};
+
+            const updateDoc = {
+                $set: {
+                    quantity: updateItem.quantity
+                },
+            }
+
+            const result = await inventoryCollection.updateOne(filter, updateDoc, options);
+
+            res.send(result);
+        });
+
+        //  POST API for recieving inventory items from client side
+
+        app.post('/items', async(req, res) => {
+            const newItem = req.body;
+            const result = await inventoryCollection.insertOne(newItem);
+
+            res.send(result);
+        });
+
+
     }
     finally{
 
