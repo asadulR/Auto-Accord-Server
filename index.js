@@ -25,6 +25,7 @@ async function run(){
         await client.connect();
 
         const inventoryCollection = client.db('AutoAccord').collection('InventoryItems');
+        const myInventoryCollection = client.db('AutoAccord').collection('MyInventoryItems');
 
         //  load inventory items from database
         app.get('/items', async(req, res) => {
@@ -73,6 +74,31 @@ async function run(){
 
             res.send(result);
         });
+        
+        //  My inventory item inserting to database
+        app.post('/myitems', async(req, res) => {
+            const myItem = req.body;
+            const result = await myInventoryCollection.insertOne(myItem);
+
+            res.send(result);
+        });
+
+
+        //  Get My added Item from database 
+
+        app.get('/myitems', async(req, res) => {
+            const email = req.query.email;
+            // console.log(email)
+
+
+            const query = {email: email};
+            const cursor = myInventoryCollection.find(query);
+
+            const myItems = await cursor.toArray();
+
+            res.send(myItems);
+
+        })
 
 
     }
@@ -84,12 +110,6 @@ async function run(){
 
 
 run().catch(console.dir);
-
-
-
-
-
-
 
 
 
