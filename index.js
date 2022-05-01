@@ -90,7 +90,6 @@ async function run(){
             const email = req.query.email;
             // console.log(email)
 
-
             const query = {email: email};
             const cursor = myInventoryCollection.find(query);
 
@@ -99,6 +98,31 @@ async function run(){
             res.send(myItems);
 
         })
+
+        //  deleting myAdded item from MyaddedCollection database
+        app.delete('/myitems/:code', async(req, res) => {
+            const code = req.params.code;
+            const query = {code: code};
+            const result = await(myInventoryCollection.deleteOne(query));
+            res.send(result);
+        })
+
+        // deleting item from inventory items collection
+
+        app.delete('/items/:code', async(req, res) => {
+            const code = req.params.code;
+            const query = {code: code};
+            const result = await(inventoryCollection.deleteOne(query));
+            res.send(result);
+        })
+
+
+
+
+
+
+
+
 
 
     }
