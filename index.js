@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
+
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express();
@@ -20,15 +22,23 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 
 
-async function run(){
-    try{
+async function run() {
+    try {
         await client.connect();
 
         const inventoryCollection = client.db('AutoAccord').collection('InventoryItems');
         const myInventoryCollection = client.db('AutoAccord').collection('MyInventoryItems');
 
+        //  Generating tocken from user login
+        app.post('/login', (req, res) => {
+            const email = req.body;
+            const token = jwt.sign(email, process.env.TOEKEN_SECRET);
+            // console.log(token);
+            res.send({ token })
+        })
+
         //  load inventory items from database
-        app.get('/items', async(req, res) => {
+        app.get('/items', async (req, res) => {
             const query = {};
 
             const cursor = inventoryCollection.find(query);
@@ -38,9 +48,9 @@ async function run(){
         });
 
         //  Load single Inventory item to update
-        app.get("/items/:id", async(req,res) => {
+        app.get("/items/:id", async (req, res) => {
             const id = req.params.id;
-            const query = {_id: ObjectId(id)};
+            const query = { _id: ObjectId(id) };
 
             const item = await inventoryCollection.findOne(query);
 
@@ -51,9 +61,9 @@ async function run(){
         app.put("/items/:id", async (req, res) => {
             const id = req.params.id;
             const updateItem = req.body;
-            const filter = {_id: ObjectId(id)};
+            const filter = { _id: ObjectId(id) };
 
-            const options = {upsert: true};
+            const options = { upsert: true };
 
             const updateDoc = {
                 $set: {
@@ -66,31 +76,53 @@ async function run(){
             res.send(result);
         });
 
+        //  Inserting new item to database is protected by JWT ....  Ony Accessed email can insert an item to the database
         //  POST API for recieving inventory items from client side
 
-        app.post('/items', async(req, res) => {
+        app.post('/items', async (req, res) => {
             const newItem = req.body;
-            const result = await inventoryCollection.insertOne(newItem);
+            const tokenInfo = req.headers.authoraization;
+            const [email, accessToken] = tokenInfo?.split(" ");
 
-            res.send(result);
+            const decoded = verifyToken(accessToken);
+            // console.log(decoded);
+            if (email === decoded.email) {
+                const result = await inventoryCollection.insertOne(newItem);
+
+                res.send(result);
+            }else{
+                res.send({success: 'UnAuthoraized access'});
+            }
         });
-        
-        //  My inventory item inserting to database
-        app.post('/myitems', async(req, res) => {
-            const myItem = req.body;
-            const result = await myInventoryCollection.insertOne(myItem);
 
-            res.send(result);
+
+
+        //  My inventory item inserting to database
+        app.post('/myitems', async (req, res) => {
+            const myItem = req.body;
+            const tokenInfo = req.headers.authoraization;
+            const [email, accessToken] = tokenInfo?.split(" ");
+
+            const decoded = verifyToken(accessToken);
+            // console.log(decoded);
+
+            if (email === decoded.email) {
+                const result = await myInventoryCollection.insertOne(myItem);
+
+                res.send(result);
+            }else{
+                res.send({success: 'UnAuthoraized access'});
+            }
         });
 
 
         //  Get My added Item from database 
 
-        app.get('/myitems', async(req, res) => {
+        app.get('/myitems', async (req, res) => {
             const email = req.query.email;
             // console.log(email)
 
-            const query = {email: email};
+            const query = { email: email };
             const cursor = myInventoryCollection.find(query);
 
             const myItems = await cursor.toArray();
@@ -100,24 +132,21 @@ async function run(){
         })
 
         //  deleting myAdded item from MyaddedCollection database
-        app.delete('/myitems/:code', async(req, res) => {
+        app.delete('/myitems/:code', async (req, res) => {
             const code = req.params.code;
-            const query = {code: code};
-            const result = await(myInventoryCollection.deleteOne(query));
+            const query = { code: code };
+            const result = await (myInventoryCollection.deleteOne(query));
             res.send(result);
         })
 
         // deleting item from inventory items collection
 
-        app.delete('/items/:code', async(req, res) => {
+        app.delete('/items/:code', async (req, res) => {
             const code = req.params.code;
-            const query = {code: code};
-            const result = await(inventoryCollection.deleteOne(query));
+            const query = { code: code };
+            const result = await (inventoryCollection.deleteOne(query));
             res.send(result);
         })
-
-
-
 
 
 
@@ -126,7 +155,7 @@ async function run(){
 
 
     }
-    finally{
+    finally {
 
     }
 
@@ -141,3 +170,22 @@ run().catch(console.dir);
 app.listen(port, () => {
     console.log('CURD server is listenning, ', port);
 });
+
+
+
+
+//  JWT verifing tocken function
+function verifyToken (token){
+    let email;
+    jwt.verify( token, process.env.TOEKEN_SECRET, function(err, decoded) {
+        if(err){
+            email = 'Invalid email'
+        }
+        if(decoded){
+            email = decoded
+            console.log(decoded);
+        }
+    });
+
+    return email;
+}
