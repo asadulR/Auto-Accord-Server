@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/', (req, res) => {
-    res.send('Auto Accord server');
+    res.send('Auto Accord server is running in heroku');
 });
 
 
